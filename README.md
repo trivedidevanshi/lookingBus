@@ -11,3 +11,4 @@ This is a python programming test. I have created a Python Flask Application to 
   - The fetch call sends the user time and stopID
   - The response is a JSON which is displayed on the information Window.
  
+ ![Bus Map](output.png)
