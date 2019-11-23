@@ -1,84 +1,117 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <style>
-            /* Set the size of the div element that contains the map */
-            #map {
-                height: 500px;
-                width: 100%;
-            }
-        </style>
-    </head>
-    <body>
-        <h3>Looking Bus</h3>
-        <div id="map"></div>
+<head>
+    <style>
+        /* Set the size of the div element that contains the map */
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<h3>Looking Bus</h3>
+<div id="map"></div>
+Enter RouteId:
+<input type="number"
+       id="myNumber"
+       value="16">
 
-        <script>
-            // Initialize and add the map
-            var map, marker, i , pos, mystops, myroutes;
-            var dt = new Date();
+<button type="button"
+        onclick="getRoute()">
 
-             function initMap(listener) {
-                //Hard coded the location to one of the stops.
-                 // It can be replaced by sending the current geolocation of the user.
-                pos = {lat: 42.74828, lng: -84.57249};
-                map = new google.maps.Map(
-                    document.getElementById('map'), {zoom: 14, center: pos});
-                //Fetch call to get list of stopIds and its latitude and longitude within 1 km of user location
-                mystops = fetch('http://127.0.0.1:5000/stopList', {
-                    method:'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({pos})
-                });
-                //Use of promises to handle the response data.
-                mystops.then(function(response) {
-                    return response.json();
-                }).then(function (data) {
-                    for(var key in data){
-                        var infowindow = new google.maps.InfoWindow();
-                        pos = {lat: data[key]['lat'], lng: data[key]['lng']};
-                        marker = new google.maps.Marker({position: pos, map: map, title:key});
-                        google.maps.event.addListener(marker, 'click', (function(marker) {
-                            return function() {
-                                var time_of_click = dt.toLocaleTimeString().split(" ")
-                                myroutes = fetch('http://127.0.0.1:5000/routesList', {
-                                    method:'POST',
-                                    headers: {
-                                        'Accept': 'application/json',
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({"stopId":marker.title, "time" : time_of_click[0]})
-                                });
-                                myroutes.then(function (response) {
-                                    return response.json();
-                                }).then(function (routes) {
-                                    var displayInfo = "<p>"+"Next three busses: "+"</br>"
+    <script>
+        // Initialize and add the map
+        var map, marker, i, pos, mystops, myroutes;
+        var dt = new Date();
 
-                                    for(var arr_times in routes) {
+        function getRoute() {
+            var x = document.getElementById("myNumber").value;
+            myroute = fetch('http://127.0.0.1:5000/getRoute', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({'routeId':x})
+            });
+            myroute.then(function (response) {
+                return response.json();
+            }).then(function (data) {
+                console.log(data);
+            });
 
-                                        displayInfo += "Arr Time: "+arr_times+", RouteId: "+routes[arr_times]+"<br />"
-                                    }
-                                    displayInfo+="</p>"
-                                    infowindow.setContent(displayInfo);
-                                        infowindow.open(map, marker);
-                                }).catch(function (err) {
-                                    console.log("Something went wrong!", err);
-                                });
+        }
 
-                            }
-                        })(marker));
-                    }
+        function initMap(listener) {
+            var rel_path = 'static/images/busstop.png'
+            var image_map = {
+                url: rel_path, // image is 512 x 512
+                scaledSize: new google.maps.Size(30, 30)
+            };
 
-                }).catch(function (err) {
-                    console.log("Something went wrong!", err);
-                });
-            }
-        </script>
-        <script async defer
-                src="https://maps.googleapis.com/maps/api/js?key=YOUR-API&callback=initMap">
-        </script>
-    </body>
+            //Hard coded the location to one of the stops.
+            // It can be replaced by sending the current geolocation of the user.
+            pos = {lat: 42.74828, lng: -84.57249};
+            map = new google.maps.Map(
+                document.getElementById('map'), {zoom: 14, center: pos});
+            //Fetch call to get list of stopIds and its latitude and longitude within 1 km of user location
+            mystops = fetch('http://127.0.0.1:5000/stopList', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({pos})
+            });
+            //Use of promises to handle the response data.
+            mystops.then(function (response) {
+                return response.json();
+            }).then(function (data) {
+                for (var key in data) {
+                    var infowindow = new google.maps.InfoWindow();
+                    pos = {lat: data[key]['lat'], lng: data[key]['lng']};
+                    marker = new google.maps.Marker({
+                        position: pos, map: map, title: key, icon: image_map
+                    });
+                    google.maps.event.addListener(marker, 'click', (function (marker) {
+                        return function () {
+                            var time_of_click = dt.toLocaleTimeString().split(" ")
+                            myroutes = fetch('http://127.0.0.1:5000/routesList', {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({"stopId": marker.title, "time": time_of_click[0]})
+                            });
+                            myroutes.then(function (response) {
+                                return response.json();
+                            }).then(function (routes) {
+                                var displayInfo = "<p>" + "Next three busses: " + "</br>"
+
+                                for (var arr_times in routes) {
+
+                                    displayInfo += "Arr Time: " + arr_times + ", RouteId: " + routes[arr_times] + "<br />"
+                                }
+                                displayInfo += "</p>"
+                                infowindow.setContent(displayInfo);
+                                infowindow.open(map, marker);
+                            }).catch(function (err) {
+                                console.log("Something went wrong!", err);
+                            });
+
+                        }
+                    })(marker));
+                }
+
+            }).catch(function (err) {
+                console.log("Something went wrong!", err);
+            });
+        }
+    </script>
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkvCPZYqbMALwDKyRgor-hrJOlUIW9Xi0&callback=initMap">
+    </script>
+</body>
 </html>
